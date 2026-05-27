@@ -168,7 +168,8 @@ function App() {
     window.parent.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', onMsg);
   }, []);
-  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+  const standalone = typeof window !== 'undefined' && window.parent === window;
+  const [tweaksOpen, setTweaksOpen] = React.useState(standalone);
 
   // Determine which leader screen to render
   const renderLeader = () => {
@@ -249,6 +250,22 @@ function App() {
         setTweaksOpen(false);
         window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
       }} />}
+
+      {/* Reopen button (standalone only — Claude's design site controls the panel via postMessage when embedded) */}
+      {!tweaksOpen && standalone && (
+        <button
+          onClick={() => setTweaksOpen(true)}
+          style={{
+            position: 'fixed', bottom: 70, right: 16, zIndex: 100,
+            padding: '8px 14px', borderRadius: 999,
+            background: 'var(--card)', border: '1px solid var(--hair)',
+            boxShadow: 'var(--shadow-3)', cursor: 'pointer',
+            fontWeight: 600, fontSize: 13, color: 'var(--ink)',
+          }}
+        >
+          Tweaks
+        </button>
+      )}
     </div>
   );
 }
