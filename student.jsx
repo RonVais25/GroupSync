@@ -56,6 +56,41 @@ function StudentDashboard({ state, dispatch }) {
           />
         </div>
 
+        {/* My project + team */}
+        <div className="section-h">
+          <span>הפרויקט שלי</span>
+        </div>
+        <div style={{ padding: '0 14px 4px' }}>
+          <div className="card">
+            <div className="space-between" style={{ marginBottom: 10 }}>
+              <div>
+                <div className="task-title">אפליקציית הזמנת אוכל לאוניברסיטה</div>
+                <div className="task-meta">הגשה 4.6 · ראש קבוצה: נועה</div>
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>64%</div>
+                <div className="tiny muted">הקבוצה</div>
+              </div>
+            </div>
+            <div className="bar"><div className="bar-fill" style={{ width: '64%' }} /></div>
+            <div style={{ display: 'flex', marginTop: 12 }}>
+              {[
+                { name: 'נועה', color: 'oklch(0.62 0.10 235)' },
+                { name: 'דניאל', color: 'oklch(0.60 0.13 30)' },
+                { name: 'שירה', color: 'oklch(0.62 0.12 160)' },
+                { name: 'יואב', color: 'oklch(0.60 0.12 100)' },
+                { name: 'תום', color: 'oklch(0.62 0.10 305)' },
+              ].map((m, i) => (
+                <span key={m.name} className="avatar sm"
+                  style={{ background: m.color, color: 'white', border: '2px solid var(--card)', marginLeft: i ? -10 : 0 }}>
+                  {m.name.charAt(0)}
+                </span>
+              ))}
+              <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-mute)', alignSelf: 'center' }}>5 חברים</div>
+            </div>
+          </div>
+        </div>
+
         {/* My tasks */}
         <div className="section-h">
           <span>המשימות שלי</span>
@@ -115,16 +150,7 @@ function StudentDashboard({ state, dispatch }) {
         </div>
       </div>
 
-      <BottomNav
-        current={state.studentTab}
-        onChange={tab => dispatch({ type: 'SET_TAB', tab, role: 'student' })}
-        items={[
-          { key: 'home', icon: 'home', label: 'בית' },
-          { key: 'tasks', icon: 'list-checks', label: 'משימות' },
-          { key: 'calendar', icon: 'calendar', label: 'יומן' },
-          { key: 'profile', icon: 'user', label: 'פרופיל' },
-        ]}
-      />
+      <AppTabBar state={state} dispatch={dispatch} />
     </div>
   );
 }

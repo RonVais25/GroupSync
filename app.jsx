@@ -80,6 +80,13 @@ function reducer(state, action) {
       return action.role === 'leader'
         ? { ...state, leaderTab: action.tab }
         : { ...state, studentTab: action.tab };
+    case 'NAV_TAB': {
+      // Shared tab bar → route to the tab's root screen for the active role.
+      const screen = action.tab === 'home' ? 'dashboard' : action.tab;
+      return state.role === 'leader'
+        ? { ...state, leaderScreen: screen, leaderTab: action.tab }
+        : { ...state, studentScreen: screen, studentTab: action.tab };
+    }
     case 'OPEN_SHEET': return { ...state, sheet: action.sheet };
     case 'CLOSE_SHEET': return { ...state, sheet: null };
     case 'TOGGLE_ANATOMY': return { ...state, anatomy: !state.anatomy };
@@ -182,6 +189,12 @@ function App() {
         return <LeaderCaseView state={state} dispatch={dispatch} />;
       case 'tracking':
         return <LeaderTracking state={state} dispatch={dispatch} />;
+      case 'tasks':
+        return <TasksScreen state={state} dispatch={dispatch} role="leader" />;
+      case 'diary':
+        return <DiaryScreen state={state} dispatch={dispatch} role="leader" />;
+      case 'profile':
+        return <ProfileScreen state={state} dispatch={dispatch} role="leader" />;
       default:
         return <LeaderDashboard state={state} dispatch={dispatch} />;
     }
@@ -197,6 +210,12 @@ function App() {
         return <StudentCalendar state={state} dispatch={dispatch} />;
       case 'confirmation':
         return <StudentConfirmation state={state} dispatch={dispatch} />;
+      case 'tasks':
+        return <TasksScreen state={state} dispatch={dispatch} role="student" />;
+      case 'diary':
+        return <DiaryScreen state={state} dispatch={dispatch} role="student" />;
+      case 'profile':
+        return <ProfileScreen state={state} dispatch={dispatch} role="student" />;
       default:
         return <StudentDashboard state={state} dispatch={dispatch} />;
     }
@@ -329,12 +348,18 @@ function BelowFrameControls({ state, dispatch }) {
       { id: 'dashboard', label: 'L2 דאשבורד' },
       { id: 'case', label: 'L3 Case View' },
       { id: 'tracking', label: 'L6 מעקב' },
+      { id: 'tasks', label: 'משימות' },
+      { id: 'diary', label: 'יומן' },
+      { id: 'profile', label: 'פרופיל' },
     ]
     : [
       { id: 'dashboard', label: 'S1 דאשבורד' },
       { id: 'taskDetail', label: 'S2 משימה' },
-      { id: 'calendar', label: 'S4 יומן' },
+      { id: 'calendar', label: 'S4 תכנון' },
       { id: 'confirmation', label: 'S6 אישור' },
+      { id: 'tasks', label: 'משימות' },
+      { id: 'diary', label: 'יומן' },
+      { id: 'profile', label: 'פרופיל' },
     ];
 
   const cur = state.role === 'leader' ? state.leaderScreen : state.studentScreen;

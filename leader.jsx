@@ -149,6 +149,67 @@ function LeaderDashboard({ state, dispatch }) {
           })}
         </div>
 
+        {/* Projects */}
+        <div className="section-h" style={{ marginTop: 16 }}>
+          <span>פרויקטים</span>
+          <span className="tiny muted">3 פעילים</span>
+        </div>
+        <div className="stack">
+          {[
+            { title: proj.title, deadline: proj.deadline, progress: proj.progress, active: true },
+            { title: 'מערכת ניהול ספרייה', deadline: '12.6', progress: 38 },
+            { title: 'בוט תמיכה לקורס', deadline: '20.6', progress: 15 },
+          ].map((p, i) => (
+            <div key={i} className="card flat" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: p.active ? 'var(--primary-soft)' : 'var(--chip)',
+                color: p.active ? 'var(--primary)' : 'var(--text-soft)',
+                display: 'grid', placeItems: 'center', flexShrink: 0,
+              }}>
+                <Icon name="folder-kanban" size={18} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="task-title">{p.title}</div>
+                <div className="bar" style={{ marginTop: 6 }}>
+                  <div className="bar-fill" style={{ width: p.progress + '%' }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.progress}%</div>
+                <div className="tiny muted">הגשה {p.deadline}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Team */}
+        <div className="section-h" style={{ marginTop: 16 }}>
+          <span>צוות</span>
+          <span className="tiny muted">{proj.members.length} חברים</span>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          {proj.members.map((m, i) => {
+            const isDaniel = m.name === 'דניאל';
+            const flag = isDaniel ? (memberStatus === 'pending' ? 'red' : memberStatus === 'responded' ? 'green' : 'yellow') : 'green';
+            return (
+              <div
+                key={m.name}
+                className="card flat"
+                style={{ display: 'flex', gap: 10, alignItems: 'center', cursor: isDaniel ? 'pointer' : 'default' }}
+                onClick={() => isDaniel && dispatch({ type: 'GO', target: 'case' })}
+              >
+                <Avatar name={m.name} color={m.color} size="sm" status={flag === 'red' ? 'away' : 'online'} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="task-title">{m.name}</div>
+                  <div className="task-meta">{isDaniel ? 'דניאל לוי' : 'חבר צוות'}</div>
+                </div>
+                <span className={`chip ${flag} dot`}>{flag === 'red' ? 'באיחור' : flag === 'yellow' ? 'בתהליך' : 'תקין'}</span>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Recent team activity */}
         <div className="section-h" style={{ marginTop: 16 }}>
           <span>פעילות אחרונה</span>
@@ -166,16 +227,7 @@ function LeaderDashboard({ state, dispatch }) {
         </div>
       </div>
 
-      <BottomNav
-        current={state.leaderTab}
-        onChange={tab => dispatch({ type: 'SET_TAB', tab, role: 'leader' })}
-        items={[
-          { key: 'home', icon: 'home', label: 'בית' },
-          { key: 'projects', icon: 'folder-kanban', label: 'פרויקטים' },
-          { key: 'team', icon: 'users', label: 'צוות' },
-          { key: 'profile', icon: 'user', label: 'פרופיל' },
-        ]}
-      />
+      <AppTabBar state={state} dispatch={dispatch} />
     </div>
   );
 }

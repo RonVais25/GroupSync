@@ -181,6 +181,40 @@ function BottomNav({ items, current, onChange }) {
   );
 }
 
+// ───────── Shared tab bar ─────────
+// One identical bar for both roles — the "continuity" of the app.
+const APP_TABS = [
+  { key: 'home', icon: 'home', label: 'בית' },
+  { key: 'tasks', icon: 'list-checks', label: 'משימות' },
+  { key: 'diary', icon: 'calendar', label: 'יומן' },
+  { key: 'profile', icon: 'user', label: 'פרופיל' },
+];
+
+// Maps any screen (deep or root, either role) to the tab that should stay lit.
+function screenToTab(screen) {
+  switch (screen) {
+    case 'tasks':
+    case 'taskDetail': return 'tasks';
+    case 'diary':
+    case 'calendar':
+    case 'confirmation': return 'diary';
+    case 'profile': return 'profile';
+    default: return 'home'; // dashboard, case, tracking, lockscreen
+  }
+}
+
+// Role-aware shared bottom bar: reads the current screen, dispatches NAV_TAB.
+function AppTabBar({ state, dispatch }) {
+  const current = state.role === 'leader' ? state.leaderScreen : state.studentScreen;
+  return (
+    <BottomNav
+      items={APP_TABS}
+      current={screenToTab(current)}
+      onChange={tab => dispatch({ type: 'NAV_TAB', tab })}
+    />
+  );
+}
+
 // Toast
 function Toast({ msg, icon = 'check' }) {
   if (!msg) return null;
@@ -228,4 +262,5 @@ function Stepper({ value, onChange, min = 1, max = 20, suffix }) {
 Object.assign(window, {
   Icon, ScoutCard, ScoutBanner, Sheet, AppBar, Avatar, BottomNav, Toast,
   CountdownChip, ToneSeg, Stepper, TONES,
+  APP_TABS, screenToTab, AppTabBar,
 });
