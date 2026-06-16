@@ -488,6 +488,51 @@ body {
 }
 .nav-item.active { color: var(--primary); }
 
+/* Main-screen options grid */
+.opt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 14px;
+}
+.opt-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 12px 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+}
+.opt-tile:active { transform: scale(.95); background: var(--chip); }
+.opt-ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--chip);
+  color: var(--text-soft);
+}
+.opt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* Selected (being-moved) calendar block */
+.cal-block.selected {
+  outline: 2px solid var(--scout-ink);
+  outline-offset: 1px;
+  box-shadow: 0 4px 12px color-mix(in oklch, var(--scout) 45%, transparent);
+}
+
 /* Task row */
 .task-row {
   background: var(--card);

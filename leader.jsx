@@ -111,8 +111,20 @@ function LeaderDashboard({ state, dispatch }) {
           </div>
         </div>
 
+        {/* All options the system offers (assignment: main screen surfaces everything) */}
+        <OptionsGrid items={[
+          { icon: 'list-checks', label: 'משימות הצוות', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'tasks' }) },
+          { icon: 'bell-ring', label: 'טיפול בהתראות', tint: { bg: 'var(--scout-soft)', fg: 'var(--scout-ink)' }, onPress: () => dispatch({ type: 'GO', target: 'case' }) },
+          { icon: 'calendar', label: 'יומן ודדליינים', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'diary' }) },
+          { icon: 'users', label: 'חברי הצוות', onPress: () => dispatch({ type: 'TOAST', msg: 'ניהול חברי צוות — להדגמה בלבד' }) },
+          { icon: 'folder-kanban', label: 'פרויקטים', onPress: () => dispatch({ type: 'TOAST', msg: 'ניהול פרויקטים — להדגמה בלבד' }) },
+          { icon: 'plus-circle', label: 'משימה חדשה', onPress: () => dispatch({ type: 'TOAST', msg: 'יצירת משימה — להדגמה בלבד' }) },
+          { icon: 'bar-chart-3', label: 'דוחות', onPress: () => dispatch({ type: 'TOAST', msg: 'דוחות התקדמות — להדגמה בלבד' }) },
+          { icon: 'settings', label: 'הגדרות', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'profile' }) },
+        ]} />
+
         {/* Tasks board */}
-        <div className="section-h">
+        <div className="section-h" style={{ marginTop: 16 }}>
           <span>משימות פעילות</span>
           <span style={{ display: 'flex', gap: 8 }}>
             <span className="chip red dot">{state.tasks.filter(t => t.flag === 'red').length}</span>
@@ -226,8 +238,6 @@ function LeaderDashboard({ state, dispatch }) {
           ))}
         </div>
       </div>
-
-      <AppTabBar state={state} dispatch={dispatch} />
     </div>
   );
 }
@@ -571,6 +581,8 @@ function LeaderTracking({ state, dispatch }) {
   if (status !== 'pending') events.push({ icon: 'send', t: state.events.sent, label: 'התזכורת נשלחה לדניאל' });
   if (['read', 'responded'].includes(status)) events.push({ icon: 'eye', t: state.events.read, label: 'דניאל קרא את ההודעה' });
   if (status === 'responded') events.push({ icon: 'check-circle-2', t: state.events.responded, label: 'דניאל עדכן את המשימה ל-65%' });
+  const esc = state.events.escalation;
+  if (esc) events.push({ icon: 'alert-triangle', t: esc.at, label: 'אסקלציה: ' + esc.label, accent: 'var(--red)' });
 
   return (
     <div className="screen">
@@ -601,8 +613,8 @@ function LeaderTracking({ state, dispatch }) {
           <div className="card">
             <div className="space-between" style={{ marginBottom: 10 }}>
               <div style={{ fontWeight: 600, fontSize: 13.5 }}>ציר תגובה</div>
-              <span className={`chip ${status === 'responded' ? 'green' : status === 'read' ? 'yellow' : 'red'} dot`}>
-                {status === 'pending' ? 'ממתין' : status === 'sent' ? 'נשלח' : status === 'read' ? 'נקראה' : 'הושלם'}
+              <span className={`chip ${esc ? 'red' : status === 'responded' ? 'green' : status === 'read' ? 'yellow' : 'red'} dot`}>
+                {esc ? 'אסקלציה' : status === 'pending' ? 'ממתין' : status === 'sent' ? 'נשלח' : status === 'read' ? 'נקראה' : 'הושלם'}
               </span>
             </div>
             <div style={{ position: 'relative', paddingRight: 18 }}>
@@ -611,7 +623,7 @@ function LeaderTracking({ state, dispatch }) {
                 <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 14, position: 'relative' }}>
                   <div style={{
                     width: 20, height: 20, borderRadius: '50%',
-                    background: 'var(--primary)', color: 'white',
+                    background: e.accent || 'var(--primary)', color: 'white',
                     display: 'grid', placeItems: 'center',
                     position: 'absolute', right: -8, top: 0,
                   }}>
@@ -646,6 +658,19 @@ function LeaderTracking({ state, dispatch }) {
             </div>
           </div>
 
+          {esc && (
+            <div className="card" style={{ background: 'var(--scout-soft)', border: '1px solid color-mix(in oklch, var(--scout) 30%, transparent)' }}>
+              <div className="row" style={{ gap: 8 }}>
+                <Icon name="shield-alert" size={18} color="var(--scout-ink)" />
+                <div style={{ fontWeight: 700 }}>הופעלה אסקלציה</div>
+              </div>
+              <div className="small" style={{ marginTop: 4, color: 'var(--text-soft)' }}>
+                {esc.label} · {esc.at}. Scout ימשיך לעקוב וידווח לך על כל שינוי.{' '}
+                {esc.kind === 'risk' ? 'המשימה סומנה "בסיכון" בלוח הקבוצתי.' : 'הפעולה נשלחה בערוץ פרטי.'}
+              </div>
+            </div>
+          )}
+
           {status === 'responded' && (
             <div className="card" style={{ background: 'var(--green-soft)', border: '1px solid color-mix(in oklch, var(--green) 30%, transparent)' }}>
               <div className="row">
@@ -658,7 +683,7 @@ function LeaderTracking({ state, dispatch }) {
             </div>
           )}
 
-          {(status === 'sent' || status === 'read') && (
+          {(status === 'sent' || status === 'read') && !esc && (
             <button className="btn block" onClick={() => dispatch({ type: 'OPEN_SHEET', sheet: 'escalation' })}>
               <Icon name="alert-triangle" size={16} />
               דניאל לא מגיב? אופציות אסקלציה
@@ -687,9 +712,9 @@ function EscalationSheet({ state, dispatch }) {
       subtitle="‎18 שעות לדדליין. Scout מציע 4 צעדים."
       footer={
         <button className="btn primary block" onClick={() => {
+          const chosen = opts.find(o => o.id === pick);
+          dispatch({ type: 'ESCALATE', kind: pick, label: chosen ? chosen.title : 'אסקלציה' });
           dispatch({ type: 'CLOSE_SHEET' });
-          dispatch({ type: 'TOAST', msg: 'הפעולה אושרה. Scout שולח עכשיו.' });
-          if (pick === 'second' || pick === '1on1') dispatch({ type: 'OPEN_SHEET', sheet: 'compose' });
         }}>אישור ושליחה</button>
       }
     >

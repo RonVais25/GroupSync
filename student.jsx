@@ -91,8 +91,20 @@ function StudentDashboard({ state, dispatch }) {
           </div>
         </div>
 
+        {/* All options the system offers (assignment: main screen surfaces everything) */}
+        <OptionsGrid items={[
+          { icon: 'inbox', label: 'המשימות שלי', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'tasks' }) },
+          { icon: 'sparkles', label: 'משימה חדשה', tint: { bg: 'var(--scout-soft)', fg: 'var(--scout-ink)' }, onPress: () => dispatch({ type: 'GO_S', target: 'taskDetail' }) },
+          { icon: 'calendar', label: 'תכנון ביומן', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'diary' }) },
+          { icon: 'gauge', label: 'העומס שלי', onPress: () => dispatch({ type: 'TOAST', msg: 'מד עומס שבועי — להדגמה בלבד' }) },
+          { icon: 'timer', label: 'הערכת מאמץ', onPress: () => dispatch({ type: 'TOAST', msg: 'הערכת מאמץ של Scout — נפתחת בתוך משימה' }) },
+          { icon: 'bell', label: 'תזכורות', onPress: () => dispatch({ type: 'TOAST', msg: 'תזכורות — להדגמה בלבד' }) },
+          { icon: 'message-circle', label: 'צ׳אט קבוצתי', onPress: () => dispatch({ type: 'TOAST', msg: 'צ׳אט קבוצתי — להדגמה בלבד' }) },
+          { icon: 'settings', label: 'הגדרות', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'profile' }) },
+        ]} />
+
         {/* My tasks */}
-        <div className="section-h">
+        <div className="section-h" style={{ marginTop: 16 }}>
           <span>המשימות שלי</span>
           <span className="tiny muted">‎4 פעילות · ‎1 חדשה</span>
         </div>
@@ -149,8 +161,6 @@ function StudentDashboard({ state, dispatch }) {
           </div>
         </div>
       </div>
-
-      <AppTabBar state={state} dispatch={dispatch} />
     </div>
   );
 }
@@ -365,6 +375,7 @@ const DAYS = ['א','ב','ג','ד','ה','ו','ש'];
 
 function StudentCalendar({ state, dispatch }) {
   const [blocks, setBlocks] = React.useState(state.calendarBlocks);
+  const [selected, setSelected] = React.useState(null);
   const confirmed = blocks.every(b => b.confirmed);
 
   // existing personal blocks (fixed)
@@ -375,9 +386,54 @@ function StudentCalendar({ state, dispatch }) {
     { day: 4, hour: 16, len: 2, label: 'פגישת קבוצה' },
   ];
 
-  const moveBlock = (id) => {
-    // Demo: clicking confirms a Scout block
-    setBlocks(bs => bs.map(b => b.id === id ? { ...b, confirmed: true } : b));
+  // A slot fits if it stays on the 9–18 grid and overlaps no existing event or other block.
+  const onGrid = (hour, len) => hour >= 9 && hour + len <= 19;
+  const slotFree = (day, hour, len, selfId) =>
+    onGrid(hour, len)
+    && !existing.some(e => e.day === day && e.hour < hour + len && e.hour + e.len > hour)
+    && !blocks.some(b => b.id !== selfId && b.day === day && b.hour < hour + len && b.hour + b.len > hour);
+
+  // Tap a block to select it; tap it again to confirm.
+  const onBlockClick = (id) => {
+    if (selected === id) {
+      setBlocks(bs => bs.map(b => b.id === id ? { ...b, confirmed: true } : b));
+      setSelected(null);
+    } else {
+      setSelected(id);
+    }
+  };
+
+  // With a block selected, tap a free cell to move it there.
+  const onCellClick = (day, hour) => {
+    if (selected == null) return;
+    const blk = blocks.find(b => b.id === selected);
+    if (!blk) return;
+    if (!slotFree(day, hour, blk.len, blk.id)) {
+      dispatch({ type: 'TOAST', msg: 'אין מספיק מקום פנוי כאן' });
+      return;
+    }
+    setBlocks(bs => bs.map(b => b.id === selected ? { ...b, day, hour, confirmed: false } : b));
+  };
+
+  // "סדר מחדש" — Scout re-resolves any conflicting block into the first free slot.
+  const rearrange = () => {
+    setSelected(null);
+    setBlocks(bs => bs.map(b => {
+      const free = (d, h) => onGrid(h, b.len)
+        && !existing.some(e => e.day === d && e.hour < h + b.len && e.hour + e.len > h)
+        && !bs.some(o => o.id !== b.id && o.day === d && o.hour < h + b.len && o.hour + o.len > h);
+      if (free(b.day, b.hour)) return b;
+      for (let h = 9; h <= 19 - b.len; h++) if (free(b.day, h)) return { ...b, hour: h, confirmed: false };
+      for (let d = 0; d < 7; d++) for (let h = 9; h <= 19 - b.len; h++) if (free(d, h)) return { ...b, day: d, hour: h, confirmed: false };
+      return b;
+    }));
+    dispatch({ type: 'TOAST', msg: 'Scout סידר מחדש את הבלוקים' });
+  };
+
+  // Persist the final arrangement so the diary reflects it, then open reminders.
+  const goReminders = () => {
+    dispatch({ type: 'SET_CALENDAR_BLOCKS', blocks });
+    dispatch({ type: 'OPEN_SHEET_S', sheet: 'reminders' });
   };
 
   return (
@@ -392,7 +448,7 @@ function StudentCalendar({ state, dispatch }) {
         }
         compact
       />
-      <div className="screen-scroll" style={{ paddingBottom: 120 }}>
+      <div className="screen-scroll" style={{ paddingBottom: 150 }}>
         <div style={{ padding: '0 14px 10px' }}>
           <ScoutCard
             title="חלוקה מומלצת"
@@ -439,8 +495,11 @@ function StudentCalendar({ state, dispatch }) {
                   const ex = existing.find(e => e.day === di && e.hour === h);
                   const sc = blocks.find(b => b.day === di && b.hour === h);
                   const conflict = sc && existing.some(e => e.day === di && e.hour < h + 2 && e.hour + e.len > h);
+                  const moveTarget = !ex && !sc && selected != null;
                   return (
-                    <div key={di} className="cal-cell" style={{ minHeight: 38 }}>
+                    <div key={di} className="cal-cell"
+                      style={{ minHeight: 38, cursor: moveTarget ? 'pointer' : 'default' }}
+                      onClick={moveTarget ? () => onCellClick(di, h) : undefined}>
                       {ex && (
                         <div className="cal-block existing" style={{ height: 38 * ex.len - 4 }}>
                           {ex.label}
@@ -448,11 +507,11 @@ function StudentCalendar({ state, dispatch }) {
                       )}
                       {sc && (
                         <div
-                          className={`cal-block scout ${sc.confirmed ? 'confirmed' : ''} ${conflict ? 'conflict' : ''}`}
+                          className={`cal-block scout ${sc.confirmed ? 'confirmed' : ''} ${conflict ? 'conflict' : ''} ${selected === sc.id ? 'selected' : ''}`}
                           style={{ height: 38 * sc.len - 4 }}
-                          onClick={() => moveBlock(sc.id)}
+                          onClick={(e) => { e.stopPropagation(); onBlockClick(sc.id); }}
                         >
-                          {conflict ? '⚠ קונפליקט' : sc.confirmed ? '✓ ' : ''}תשלום ‎{sc.len}ש
+                          {conflict ? '⚠ ' : sc.confirmed ? '✓ ' : selected === sc.id ? '● ' : ''}תשלום ‎{sc.len}ש
                         </div>
                       )}
                     </div>
@@ -466,7 +525,11 @@ function StudentCalendar({ state, dispatch }) {
             <div className="row" style={{ gap: 8 }}>
               <Icon name={confirmed ? 'check-circle-2' : 'info'} size={14} color={confirmed ? 'var(--green)' : 'var(--text-mute)'} />
               <span className="small muted">
-                {confirmed ? 'כל הבלוקים אושרו' : 'הקש על בלוק סגול כדי לאשר. תוכל לגרור אותו לזמן אחר.'}
+                {confirmed
+                  ? 'כל הבלוקים אושרו ✓'
+                  : selected != null
+                    ? 'הבלוק נבחר — הקש על משבצת פנויה כדי להזיז, או על הבלוק שוב כדי לאשר.'
+                    : 'הקש על בלוק כדי לבחור, ואז על משבצת פנויה כדי להזיז. הקש שוב לאישור.'}
               </span>
             </div>
           </div>
@@ -474,16 +537,16 @@ function StudentCalendar({ state, dispatch }) {
       </div>
 
       <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0,
+        position: 'absolute', left: 0, right: 0, bottom: 72,
         background: 'var(--card)', borderTop: '1px solid var(--hair)',
-        padding: '12px 14px 26px',
+        padding: '12px 14px 14px',
       }}>
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn subtle" style={{ flex: 1 }} onClick={() => setBlocks(b => b.map(x => ({ ...x, hour: x.hour + 1 })))}>
+          <button className="btn subtle" style={{ flex: 1 }} onClick={rearrange}>
             <Icon name="shuffle" size={14} />
             סדר מחדש
           </button>
-          <button className="btn primary" style={{ flex: 2 }} onClick={() => dispatch({ type: 'OPEN_SHEET_S', sheet: 'reminders' })}>
+          <button className="btn primary" style={{ flex: 2 }} onClick={goReminders}>
             המשך לתזכורות
             <Icon name="arrow-left" size={14} />
           </button>
@@ -547,17 +610,26 @@ function RemindersSheet({ state, dispatch }) {
 
 // ───────── S6 Confirmation ─────────
 function StudentConfirmation({ state, dispatch }) {
+  // Reflect the blocks the student actually planned (persisted from the calendar).
+  const DAY_NAMES = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+  const fmtBlock = (b) => {
+    const date = 26 + b.day > 31 ? 26 + b.day - 31 : 26 + b.day;
+    const month = 26 + b.day > 31 ? 6 : 5;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${DAY_NAMES[b.day]}' ${date}.${month} · ${pad(b.hour)}:00 — ${pad(b.hour + b.len)}:00`;
+  };
+  const blocks = state.calendarBlocks;
   return (
     <div className="screen">
       <AppBar title="" compact />
-      <div className="screen-scroll" style={{ padding: '40px 20px' }}>
+      <div className="screen-scroll" style={{ padding: '40px 20px 100px' }}>
         <div className="success-circle">
           <Icon name="check" size={40} strokeWidth={2.6} />
         </div>
         <div style={{ textAlign: 'center', marginTop: 18 }}>
           <div style={{ fontSize: 22, fontWeight: 700 }}>קלטנו את המשימה</div>
           <div className="small muted" style={{ marginTop: 6 }}>
-            סטטוס: <b>בתהליך</b> · ‎3 בלוקים נקבעו ביומן · ‎3 תזכורות הופעלו
+            סטטוס: <b>בתהליך</b> · ‎{blocks.length} בלוקים נקבעו ביומן · ‎3 תזכורות הופעלו
           </div>
         </div>
 
@@ -572,18 +644,12 @@ function StudentConfirmation({ state, dispatch }) {
             </div>
             <div className="divider" />
             <div className="col" style={{ gap: 6 }}>
-              <div className="row" style={{ gap: 8 }}>
-                <Icon name="calendar" size={14} color="var(--text-mute)" />
-                <span className="small">ב' 27.5 · 09:00 — 11:00</span>
-              </div>
-              <div className="row" style={{ gap: 8 }}>
-                <Icon name="calendar" size={14} color="var(--text-mute)" />
-                <span className="small">ד' 29.5 · 10:00 — 12:00</span>
-              </div>
-              <div className="row" style={{ gap: 8 }}>
-                <Icon name="calendar" size={14} color="var(--text-mute)" />
-                <span className="small">ה' 30.5 · 09:00 — 11:00</span>
-              </div>
+              {blocks.map(b => (
+                <div key={b.id} className="row" style={{ gap: 8 }}>
+                  <Icon name="calendar" size={14} color="var(--text-mute)" />
+                  <span className="small">{fmtBlock(b)}</span>
+                </div>
+              ))}
             </div>
           </div>
 

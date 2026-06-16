@@ -103,9 +103,7 @@ function LeaderTasks({ state, dispatch }) {
             </React.Fragment>
           );
         })}
-      </div>
-      <AppTabBar state={state} dispatch={dispatch} />
-    </div>
+      </div>    </div>
   );
 }
 
@@ -148,9 +146,7 @@ function StudentTasks({ state, dispatch }) {
             </div>
           ))}
         </div>
-      </div>
-      <AppTabBar state={state} dispatch={dispatch} />
-    </div>
+      </div>    </div>
   );
 }
 
@@ -216,9 +212,7 @@ function DiaryScreen({ state, dispatch, role }) {
             </div>
           ))}
         </div>
-      </div>
-      <AppTabBar state={state} dispatch={dispatch} />
-    </div>
+      </div>    </div>
   );
 }
 
@@ -325,9 +319,7 @@ function ProfileScreen({ state, dispatch, role }) {
         <div className="tiny muted" style={{ textAlign: 'center', marginTop: 16 }}>
           GroupSync · גרסת הדגמה
         </div>
-      </div>
-      <AppTabBar state={state} dispatch={dispatch} />
-    </div>
+      </div>    </div>
   );
 }
 

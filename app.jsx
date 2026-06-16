@@ -39,7 +39,7 @@ const initialState = {
   role: 'leader',
   theme: 'light',
   // leader nav
-  leaderScreen: 'lockscreen',
+  leaderScreen: 'dashboard',
   leaderTab: 'home',
   sheet: null,
   intervention: 'reminder',
@@ -117,11 +117,22 @@ function reducer(state, action) {
     case 'SET_AUTO_REPLY': return { ...state, autoReply: action.autoReply };
     case 'RESET_DANIEL':
       return { ...state, danielStatus: 'pending', events: {}, tasks: SEED_TASKS };
+    case 'ESCALATE':
+      return {
+        ...state,
+        events: { ...state.events, escalation: { kind: action.kind, label: action.label, at: '14:48' } },
+        // Marking "at risk" is the one group-visible step — reflect it on Daniel's task flag.
+        tasks: action.kind === 'risk'
+          ? state.tasks.map(t => t.assignee === 'דניאל' ? { ...t, flag: 'red', flagLabel: 'בסיכון · גלוי' } : t)
+          : state.tasks,
+        toast: 'האסקלציה בוצעה · Scout עדכן את המעקב',
+      };
 
     case 'GO_S': return { ...state, studentScreen: action.target };
     case 'OPEN_SHEET_S': return { ...state, sheetS: action.sheet };
     case 'CLOSE_SHEET_S': return { ...state, sheetS: null };
     case 'SET_ESTIMATE': return { ...state, estimate: { lo: action.lo, hi: action.hi, note: action.note } };
+    case 'SET_CALENDAR_BLOCKS': return { ...state, calendarBlocks: action.blocks };
 
     case 'TOAST': return { ...state, toast: action.msg };
     case 'CLEAR_TOAST': return { ...state, toast: '' };
@@ -226,8 +237,6 @@ function App() {
 
   return (
     <div className="stage">
-      <RoleSwitcher state={state} dispatch={dispatch} />
-
       <IOSDevice
         width={402}
         height={874}
@@ -237,6 +246,11 @@ function App() {
           <ScreenWrap key={state.role + '/' + screenKey}>
             {state.role === 'leader' ? renderLeader() : renderStudent()}
           </ScreenWrap>
+
+          {/* Persistent app tab bar — lives in the shell (outside ScreenWrap) so it
+              stays fixed while the screen content transitions. Visible on every screen
+              except the iOS lock screen (which is pre-app). */}
+          {screenKey !== 'lockscreen' && <AppTabBar state={state} dispatch={dispatch} />}
 
           {/* Leader sheets */}
           {state.role === 'leader' && (
@@ -261,9 +275,6 @@ function App() {
         </div>
       </IOSDevice>
 
-      {/* External controls below frame */}
-      <BelowFrameControls state={state} dispatch={dispatch} />
-
       {/* Tweaks panel */}
       {tweaksOpen && <GroupSyncTweaks state={state} dispatch={dispatch} onClose={() => {
         setTweaksOpen(false);
@@ -280,9 +291,11 @@ function App() {
             background: 'var(--card)', border: '1px solid var(--hair)',
             boxShadow: 'var(--shadow-3)', cursor: 'pointer',
             fontWeight: 600, fontSize: 13, color: 'var(--ink)',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}
         >
-          Tweaks
+          <Icon name="layout-panel-left" size={14} />
+          מסכים · Demo
         </button>
       )}
     </div>
@@ -309,125 +322,120 @@ function ScreenWrap({ children }) {
   );
 }
 
-// ───────── Role switcher pill above the phone ─────────
-function RoleSwitcher({ state, dispatch }) {
-  return (
-    <div style={{
-      position: 'fixed', top: 18, left: '50%', transform: 'translateX(-50%)',
-      zIndex: 50, display: 'flex', gap: 4,
-      background: 'var(--card)', padding: 4, borderRadius: 999,
-      boxShadow: 'var(--shadow-2)', border: '1px solid var(--hair)',
-    }}>
-      {[{ id: 'leader', label: 'ראש קבוצה · נועה', icon: 'crown' },
-        { id: 'student', label: 'סטודנט · יואב', icon: 'user' }].map(r => (
-        <button
-          key={r.id}
-          onClick={() => dispatch({ type: 'JUMP', role: r.id, target: r.id === 'leader' ? 'lockscreen' : 'dashboard' })}
-          className="row"
-          style={{
-            padding: '8px 14px', borderRadius: 999, border: 'none',
-            background: state.role === r.id ? 'var(--primary)' : 'transparent',
-            color: state.role === r.id ? 'white' : 'var(--text-soft)',
-            fontWeight: 600, fontSize: 13, gap: 6, cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          <Icon name={r.icon} size={14} />
-          {r.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ───────── Below-frame quick controls ─────────
-function BelowFrameControls({ state, dispatch }) {
-  const screens = state.role === 'leader'
-    ? [
-      { id: 'lockscreen', label: 'L1 התראת Push' },
-      { id: 'dashboard', label: 'L2 דאשבורד' },
-      { id: 'case', label: 'L3 Case View' },
-      { id: 'tracking', label: 'L6 מעקב' },
-      { id: 'tasks', label: 'משימות' },
-      { id: 'diary', label: 'יומן' },
-      { id: 'profile', label: 'פרופיל' },
-    ]
-    : [
-      { id: 'dashboard', label: 'S1 דאשבורד' },
-      { id: 'taskDetail', label: 'S2 משימה' },
-      { id: 'calendar', label: 'S4 תכנון' },
-      { id: 'confirmation', label: 'S6 אישור' },
-      { id: 'tasks', label: 'משימות' },
-      { id: 'diary', label: 'יומן' },
-      { id: 'profile', label: 'פרופיל' },
-    ];
-
-  const cur = state.role === 'leader' ? state.leaderScreen : state.studentScreen;
-
-  return (
-    <div style={{
-      position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-      zIndex: 50, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
-      background: 'var(--card)', padding: 6, borderRadius: 14,
-      boxShadow: 'var(--shadow-2)', border: '1px solid var(--hair)',
-      maxWidth: 'min(95vw, 700px)',
-    }}>
-      {screens.map(s => (
-        <button
-          key={s.id}
-          onClick={() => dispatch({ type: 'JUMP', role: state.role, target: s.id })}
-          style={{
-            padding: '6px 10px', borderRadius: 8, border: 'none',
-            background: cur === s.id ? 'var(--primary)' : 'transparent',
-            color: cur === s.id ? 'white' : 'var(--text-soft)',
-            fontWeight: 600, fontSize: 12, cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >{s.label}</button>
-      ))}
-    </div>
-  );
-}
-
-// ───────── Tweaks panel ─────────
+// ───────── Demo / Tweaks side panel ─────────
+// Consolidates the role switch, the screen-flow navigator, and dev toggles into one
+// side panel so the phone itself stays clean. Real users switch role via the in-app
+// Profile tab; this panel is a convenience for the team while presenting/testing.
 function GroupSyncTweaks({ state, dispatch, onClose }) {
+  const ROLES = [
+    { id: 'leader', label: 'נועה', icon: 'crown' },
+    { id: 'student', label: 'יואב', icon: 'user' },
+  ];
+  const FLOWS = {
+    leader: [
+      { id: 'lockscreen', label: 'L1 · Push' },
+      { id: 'dashboard', label: 'L2 · דאשבורד' },
+      { id: 'case', label: 'L3 · Case' },
+      { id: 'tracking', label: 'L6 · מעקב' },
+      { id: 'tasks', label: 'משימות' },
+      { id: 'diary', label: 'יומן' },
+      { id: 'profile', label: 'פרופיל' },
+    ],
+    student: [
+      { id: 'dashboard', label: 'S1 · דאשבורד' },
+      { id: 'taskDetail', label: 'S2 · משימה' },
+      { id: 'calendar', label: 'S4 · תכנון' },
+      { id: 'confirmation', label: 'S6 · אישור' },
+      { id: 'tasks', label: 'משימות' },
+      { id: 'diary', label: 'יומן' },
+      { id: 'profile', label: 'פרופיל' },
+    ],
+  };
+
+  const flowBtn = (role, s) => {
+    const cur = role === 'leader' ? state.leaderScreen : state.studentScreen;
+    const active = state.role === role && cur === s.id;
+    return (
+      <button key={role + s.id}
+        onClick={() => dispatch({ type: 'JUMP', role, target: s.id })}
+        style={{
+          padding: '5px 9px', borderRadius: 8, border: 'none',
+          background: active ? 'var(--primary)' : 'var(--chip)',
+          color: active ? 'white' : 'var(--text-soft)',
+          fontWeight: 600, fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+        }}>{s.label}</button>
+    );
+  };
+
   return (
     <div style={{
-      position: 'fixed', bottom: 70, right: 16, width: 280,
+      position: 'fixed', bottom: 70, right: 16, width: 300, maxHeight: '82vh',
+      display: 'flex', flexDirection: 'column',
       background: 'var(--card)', borderRadius: 16, boxShadow: 'var(--shadow-3)',
-      border: '1px solid var(--hair)', padding: 14, zIndex: 100,
+      border: '1px solid var(--hair)', zIndex: 100,
     }}>
-      <div className="space-between" style={{ marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>Tweaks</div>
+      <div className="space-between" style={{ padding: '12px 14px 8px' }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>מסכים · Demo</div>
         <span className="icon-btn ghost" onClick={onClose}><Icon name="x" size={16} /></span>
       </div>
 
-      <div className="col" style={{ gap: 12 }}>
-        {/* Theme */}
+      <div className="col" style={{ gap: 14, padding: '0 14px 14px', overflowY: 'auto' }}>
+        {/* Role switch */}
+        <div>
+          <div className="tiny muted" style={{ fontWeight: 600, marginBottom: 6 }}>תצוגה</div>
+          <div className="row" style={{ gap: 6 }}>
+            {ROLES.map(r => (
+              <button key={r.id} className="row"
+                onClick={() => dispatch({ type: 'JUMP', role: r.id, target: 'dashboard' })}
+                style={{
+                  flex: 1, justifyContent: 'center', padding: '8px 10px', borderRadius: 10,
+                  border: '1px solid ' + (state.role === r.id ? 'transparent' : 'var(--hair)'),
+                  background: state.role === r.id ? 'var(--primary)' : 'transparent',
+                  color: state.role === r.id ? 'white' : 'var(--text-soft)',
+                  fontWeight: 600, fontSize: 12.5, gap: 6, cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                <Icon name={r.icon} size={14} />{r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Screen-flow navigator */}
+        <div>
+          <div className="tiny muted" style={{ fontWeight: 600, marginBottom: 6 }}>מסכים · Flows</div>
+          <div className="tiny muted" style={{ marginBottom: 4 }}>ראש קבוצה (נועה)</div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 5 }}>
+            {FLOWS.leader.map(s => flowBtn('leader', s))}
+          </div>
+          <div className="tiny muted" style={{ margin: '8px 0 4px' }}>סטודנט (יואב)</div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 5 }}>
+            {FLOWS.student.map(s => flowBtn('student', s))}
+          </div>
+        </div>
+
+        <div className="divider" style={{ margin: 0 }} />
+
+        {/* Dev toggles */}
         <div className="space-between">
-          <div className="small">Dark mode</div>
+          <div className="small">מצב כהה</div>
           <div className={`switch ${state.theme === 'dark' ? 'on' : ''}`}
             onClick={() => dispatch({ type: 'TOGGLE_THEME' })} />
         </div>
-
-        {/* Daniel auto-reply */}
         <div className="space-between">
           <div>
-            <div className="small">Daniel auto-replies</div>
-            <div className="tiny muted">לכבות כדי לבחון אסקלציה</div>
+            <div className="small">דניאל מגיב אוטומטית</div>
+            <div className="tiny muted">כבה כדי לבחון אסקלציה</div>
           </div>
           <div className={`switch ${state.autoReply ? 'on' : ''}`}
             onClick={() => dispatch({ type: 'SET_AUTO_REPLY', autoReply: !state.autoReply })} />
         </div>
-
-        {/* Anatomy */}
         <div className="space-between">
           <div className="small">L4 anatomy callouts</div>
           <div className={`switch ${state.anatomy ? 'on' : ''}`}
             onClick={() => dispatch({ type: 'TOGGLE_ANATOMY' })} />
         </div>
 
-        <div className="divider" />
+        <div className="divider" style={{ margin: 0 }} />
         <div className="small" style={{ fontWeight: 600 }}>פעולות בדיקה</div>
 
         <button className="btn sm subtle" onClick={() => dispatch({ type: 'RESET_DANIEL' })}>

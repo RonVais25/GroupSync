@@ -259,8 +259,30 @@ function Stepper({ value, onChange, min = 1, max = 20, suffix }) {
   );
 }
 
+// ───────── Main-screen capability grid ─────────
+// Surfaces every option the system offers on the home screen (assignment requirement:
+// "the main screen includes all the options the system allows"). Functional tiles
+// navigate into a real flow/tab; the rest acknowledge with an honest "demo only" toast.
+function OptionsGrid({ title = 'כל האפשרויות', items }) {
+  return (
+    <>
+      <div className="section-h"><span>{title}</span></div>
+      <div className="opt-grid">
+        {items.map((it, i) => (
+          <button key={i} className="opt-tile" onClick={it.onPress}>
+            <span className="opt-ic" style={it.tint ? { background: it.tint.bg, color: it.tint.fg } : undefined}>
+              <Icon name={it.icon} size={20} />
+            </span>
+            <span className="opt-label">{it.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
 Object.assign(window, {
   Icon, ScoutCard, ScoutBanner, Sheet, AppBar, Avatar, BottomNav, Toast,
-  CountdownChip, ToneSeg, Stepper, TONES,
+  CountdownChip, ToneSeg, Stepper, TONES, OptionsGrid,
   APP_TABS, screenToTab, AppTabBar,
 });
