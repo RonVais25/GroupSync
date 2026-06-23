@@ -71,9 +71,11 @@ function LeaderDashboard({ state, dispatch }) {
         }
       />
       <div className="screen-scroll">
-        {/* Scout daily digest banner */}
+        {/* Scout alert banner — prominent + the whole card opens the case */}
         <ScoutBanner
-          title="‎1 התראה חדשה מ-Scout"
+          prominent
+          count={1}
+          title="התראה חדשה מ-Scout"
           body="דניאל לא עדכן את 'עיצוב מסך הלוגין'. נותרו 48 שעות."
           onAction={() => dispatch({ type: 'GO', target: 'case' })}
           actionLabel="פתח"
@@ -111,15 +113,11 @@ function LeaderDashboard({ state, dispatch }) {
           </div>
         </div>
 
-        {/* All options the system offers (assignment: main screen surfaces everything) */}
+        {/* Quick actions — only tiles that lead to a real flow are kept */}
         <OptionsGrid items={[
           { icon: 'list-checks', label: 'משימות הצוות', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'tasks' }) },
           { icon: 'bell-ring', label: 'טיפול בהתראות', tint: { bg: 'var(--scout-soft)', fg: 'var(--scout-ink)' }, onPress: () => dispatch({ type: 'GO', target: 'case' }) },
           { icon: 'calendar', label: 'יומן ודדליינים', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'diary' }) },
-          { icon: 'users', label: 'חברי הצוות', onPress: () => dispatch({ type: 'TOAST', msg: 'ניהול חברי צוות — להדגמה בלבד' }) },
-          { icon: 'folder-kanban', label: 'פרויקטים', onPress: () => dispatch({ type: 'TOAST', msg: 'ניהול פרויקטים — להדגמה בלבד' }) },
-          { icon: 'plus-circle', label: 'משימה חדשה', onPress: () => dispatch({ type: 'TOAST', msg: 'יצירת משימה — להדגמה בלבד' }) },
-          { icon: 'bar-chart-3', label: 'דוחות', onPress: () => dispatch({ type: 'TOAST', msg: 'דוחות התקדמות — להדגמה בלבד' }) },
           { icon: 'settings', label: 'הגדרות', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'profile' }) },
         ]} />
 
@@ -362,8 +360,8 @@ function LeaderCaseView({ state, dispatch }) {
   );
 }
 
-// ───────── L4 Intervention sheet (with anatomy callouts) ─────────
-function InterventionSheet({ state, dispatch, anatomy, onAnatomy }) {
+// ───────── L4 Intervention sheet ─────────
+function InterventionSheet({ state, dispatch }) {
   const [selected, setSelected] = React.useState('reminder');
 
   const options = [
@@ -406,50 +404,25 @@ function InterventionSheet({ state, dispatch, anatomy, onAnatomy }) {
       }
     >
       <div className="col" style={{ marginBottom: 12 }}>
-        {/* Anatomy demo: numbered callouts pointing to scout-card parts */}
-        <div className="opt-wrap" style={{ position: 'relative' }}>
-          <ScoutCard
-            title="המלצת Scout"
-            anatomyRefs={anatomy}
-            suggestion={
-              <>
-                מומלץ להתחיל ב<b>תזכורת פרטית קצרה</b>. ההסטוריה של דניאל מראה שהוא מגיב טוב לפניות פרטיות (‎2/3 בעבר).
-              </>
-            }
-            why={
-              <>
-                <b>קריטריונים:</b> רמת רגישות בינונית — איחור קיים אך לא קריטי, היחסים בקבוצה תקינים, ויש עדיין זמן לדדליין. תזכורת קלה היא הצעד הפחות פולשני שעוד צפוי לעבוד.
-              </>
-            }
-            actions={
-              <span className="tiny muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="shield-check" size={12} />
-                כל פעולה דורשת אישור שלך
-              </span>
-            }
-          />
-
-          {anatomy && (
+        <ScoutCard
+          title="המלצת Scout"
+          suggestion={
             <>
-              <div className="callout" style={{ top: 12 }}>
-                <span className="callout-num">1</span>
-                <span>תווית</span>
-              </div>
-              <div className="callout" style={{ top: 56 }}>
-                <span className="callout-num">2</span>
-                <span>הצעה</span>
-              </div>
-              <div className="callout" style={{ top: 132 }}>
-                <span className="callout-num">3</span>
-                <span>"למה?"</span>
-              </div>
-              <div className="callout" style={{ bottom: 12 }}>
-                <span className="callout-num">4</span>
-                <span>פעולות</span>
-              </div>
+              מומלץ להתחיל ב<b>תזכורת פרטית קצרה</b>. ההיסטוריה של דניאל מראה שהוא מגיב טוב לפניות פרטיות (‎2/3 בעבר).
             </>
-          )}
-        </div>
+          }
+          why={
+            <>
+              <b>קריטריונים:</b> רמת רגישות בינונית — איחור קיים אך לא קריטי, היחסים בקבוצה תקינים, ויש עדיין זמן לדדליין. תזכורת קלה היא הצעד הפחות פולשני שעוד צפוי לעבוד.
+            </>
+          }
+          actions={
+            <span className="tiny muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="shield-check" size={12} />
+              כל פעולה דורשת אישור שלך
+            </span>
+          }
+        />
       </div>
 
       <div className="col" style={{ gap: 10 }}>
@@ -471,22 +444,9 @@ function InterventionSheet({ state, dispatch, anatomy, onAnatomy }) {
                 </span>
               </div>
             </div>
-            <div className={`cb ${selected === o.id ? 'on' : ''}`}>
-              {selected === o.id && <Icon name="check" size={14} />}
-            </div>
+            <div className={`radio ${selected === o.id ? 'on' : ''}`} />
           </div>
         ))}
-      </div>
-
-      <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--chip)', borderRadius: 10 }}>
-        <span className="tiny muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Icon name="eye-off" size={12} />
-          הצגת אנטומיה (פאנל הסבר):
-        </span>
-        <span className="switch" style={{ marginRight: 8, transform: 'translateY(2px)' }}
-          onClick={(e) => { e.stopPropagation(); onAnatomy(); }}>
-          <span className={`switch ${anatomy ? 'on' : ''}`} style={{ position: 'absolute', inset: 0 }} />
-        </span>
       </div>
     </Sheet>
   );
@@ -746,9 +706,7 @@ function EscalationSheet({ state, dispatch }) {
                 </span>
               </div>
             </div>
-            <div className={`cb ${pick === o.id ? 'on' : ''}`}>
-              {pick === o.id && <Icon name="check" size={14} />}
-            </div>
+            <div className={`radio ${pick === o.id ? 'on' : ''}`} />
           </div>
         ))}
       </div>

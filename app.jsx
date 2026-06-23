@@ -17,7 +17,7 @@ const SEED_PROJECT = {
 const SEED_TASKS = [
   { id: 't1', title: 'עיצוב מסך הלוגין', assignee: 'דניאל', color: 'oklch(0.60 0.13 30)', due: 'עוד 48 שעות', flag: 'red', flagLabel: 'באיחור' },
   { id: 't2', title: 'סכמת DB — הזמנות', assignee: 'שירה', color: 'oklch(0.62 0.12 160)', due: 'עוד 4 ימים', flag: 'yellow', flagLabel: 'בעבודה' },
-  { id: 't3', title: 'הומפייג׳ + רכיב Hero', assignee: 'תום', color: 'oklch(0.62 0.10 305)', due: 'הושלם', flag: 'green', flagLabel: 'הושלם' },
+  { id: 't3', title: 'דף הבית + רכיב Hero', assignee: 'תום', color: 'oklch(0.62 0.10 305)', due: 'הושלם', flag: 'green', flagLabel: 'הושלם' },
   { id: 't4', title: 'מסך תפריט והוספה לסל', assignee: 'יואב', color: 'oklch(0.60 0.12 100)', due: 'עוד 6 ימים', flag: 'green', flagLabel: 'בזמן' },
 ];
 
@@ -49,7 +49,6 @@ const initialState = {
   activity: SEED_ACTIVITY,
   danielStatus: 'pending', // pending | sent | read | responded
   events: {},
-  anatomy: false,
 
   // student nav
   studentScreen: 'dashboard',
@@ -89,7 +88,6 @@ function reducer(state, action) {
     }
     case 'OPEN_SHEET': return { ...state, sheet: action.sheet };
     case 'CLOSE_SHEET': return { ...state, sheet: null };
-    case 'TOGGLE_ANATOMY': return { ...state, anatomy: !state.anatomy };
     case 'SET_INTERVENTION': return { ...state, intervention: action.intervention };
 
     case 'SEND_MESSAGE':
@@ -129,6 +127,19 @@ function reducer(state, action) {
       };
 
     case 'GO_S': return { ...state, studentScreen: action.target };
+    case 'REJECT_TASK':
+      // Decline the newly received task: mark it rejected, notify the leader (demo),
+      // close the sheet and return to the dashboard.
+      return {
+        ...state,
+        studentTasks: state.studentTasks.map(t => t.isNew
+          ? { ...t, isNew: false, meta: 'נדחתה · נשלחה הודעה לנועה', icon: 'x', iconBg: 'var(--red-soft)', iconColor: 'var(--red)' }
+          : t),
+        sheetS: null,
+        studentScreen: 'dashboard',
+        studentTab: 'home',
+        toast: 'נשלחה הודעה לנועה · המשימה נדחתה',
+      };
     case 'OPEN_SHEET_S': return { ...state, sheetS: action.sheet };
     case 'CLOSE_SHEET_S': return { ...state, sheetS: null };
     case 'SET_ESTIMATE': return { ...state, estimate: { lo: action.lo, hi: action.hi, note: action.note } };
@@ -255,7 +266,7 @@ function App() {
           {/* Leader sheets */}
           {state.role === 'leader' && (
             <>
-              <InterventionSheet state={state} dispatch={dispatch} anatomy={state.anatomy} onAnatomy={() => dispatch({ type: 'TOGGLE_ANATOMY' })} />
+              <InterventionSheet state={state} dispatch={dispatch} />
               <ComposeSheet state={state} dispatch={dispatch} />
               <EscalationSheet state={state} dispatch={dispatch} />
             </>
@@ -267,6 +278,7 @@ function App() {
               <EffortSheet state={state} dispatch={dispatch} />
               <AskScoutSheet state={state} dispatch={dispatch} />
               <RemindersSheet state={state} dispatch={dispatch} />
+              <RejectTaskSheet state={state} dispatch={dispatch} />
             </>
           )}
 
@@ -429,12 +441,6 @@ function GroupSyncTweaks({ state, dispatch, onClose }) {
           <div className={`switch ${state.autoReply ? 'on' : ''}`}
             onClick={() => dispatch({ type: 'SET_AUTO_REPLY', autoReply: !state.autoReply })} />
         </div>
-        <div className="space-between">
-          <div className="small">L4 anatomy callouts</div>
-          <div className={`switch ${state.anatomy ? 'on' : ''}`}
-            onClick={() => dispatch({ type: 'TOGGLE_ANATOMY' })} />
-        </div>
-
         <div className="divider" style={{ margin: 0 }} />
         <div className="small" style={{ fontWeight: 600 }}>פעולות בדיקה</div>
 

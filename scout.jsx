@@ -30,10 +30,10 @@ function CountdownChip({ minutes, color = 'red' }) {
 }
 
 // Scout inline card — the canonical "Scout suggests…" surface
-function ScoutCard({ title, suggestion, why, actions, children, anatomyRefs }) {
+function ScoutCard({ title, suggestion, why, actions, children }) {
   const [whyOpen, setWhyOpen] = React.useState(false);
   return (
-    <div className="scout-card" data-anatomy={anatomyRefs ? 'card' : undefined}>
+    <div className="scout-card">
       <div className="scout-header">
         <span className="scout-badge">
           <Icon name="sparkles" size={11} />
@@ -41,7 +41,7 @@ function ScoutCard({ title, suggestion, why, actions, children, anatomyRefs }) {
         </span>
         {title && <span style={{ fontSize: 13, color: 'var(--scout-ink)', fontWeight: 600 }}>{title}</span>}
       </div>
-      <div data-anatomy={anatomyRefs ? 'suggestion' : undefined} style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text)' }}>
+      <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text)' }}>
         {suggestion}
       </div>
       {children}
@@ -49,7 +49,6 @@ function ScoutCard({ title, suggestion, why, actions, children, anatomyRefs }) {
         <>
           <span
             className="scout-why"
-            data-anatomy={anatomyRefs ? 'why' : undefined}
             onClick={() => setWhyOpen(o => !o)}
           >
             <Icon name={whyOpen ? 'chevron-up' : 'chevron-down'} size={14} />
@@ -59,7 +58,7 @@ function ScoutCard({ title, suggestion, why, actions, children, anatomyRefs }) {
         </>
       )}
       {actions && (
-        <div data-anatomy={anatomyRefs ? 'actions' : undefined} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
           {actions}
         </div>
       )}
@@ -67,26 +66,29 @@ function ScoutCard({ title, suggestion, why, actions, children, anatomyRefs }) {
   );
 }
 
-// Scout notification banner at top of screen
-function ScoutBanner({ title, body, onDismiss, onAction, actionLabel = 'פתח' }) {
+// Scout notification banner at top of screen.
+// `prominent` makes the whole card a glowing, fully-tappable alert; `count` shows a badge.
+function ScoutBanner({ title, body, onDismiss, onAction, actionLabel = 'פתח', prominent, count, icon = 'sparkles' }) {
+  const clickable = !!onAction;
   return (
-    <div className="notif-banner">
-      <div style={{
-        width: 28, height: 28, borderRadius: 8,
-        background: 'var(--scout)', color: 'white',
-        display: 'grid', placeItems: 'center', flexShrink: 0,
-      }}>
-        <Icon name="sparkles" size={14} />
+    <div
+      className={`notif-banner ${prominent ? 'prominent' : ''}`}
+      onClick={clickable ? onAction : undefined}
+      style={clickable ? { cursor: 'pointer' } : undefined}
+    >
+      <div className="notif-banner-ic">
+        <Icon name={icon} size={prominent ? 16 : 14} />
+        {count != null && <span className="notif-count">{count}</span>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--scout-ink)' }}>{title}</div>
+        <div style={{ fontWeight: 700, fontSize: prominent ? 14.5 : 13.5, color: 'var(--scout-ink)' }}>{title}</div>
         <div style={{ fontSize: 12.5, color: 'var(--text-soft)', marginTop: 2, lineHeight: 1.45 }}>{body}</div>
       </div>
       {onAction && (
-        <button className="btn sm scout" onClick={onAction}>{actionLabel}</button>
+        <button className="btn sm scout" onClick={(e) => { e.stopPropagation(); onAction(); }}>{actionLabel}</button>
       )}
       {onDismiss && (
-        <span onClick={onDismiss} style={{ cursor: 'pointer', color: 'var(--text-mute)', padding: 2 }}>
+        <span onClick={(e) => { e.stopPropagation(); onDismiss(); }} style={{ cursor: 'pointer', color: 'var(--text-mute)', padding: 2 }}>
           <Icon name="x" size={16} />
         </span>
       )}
@@ -259,11 +261,10 @@ function Stepper({ value, onChange, min = 1, max = 20, suffix }) {
   );
 }
 
-// ───────── Main-screen capability grid ─────────
-// Surfaces every option the system offers on the home screen (assignment requirement:
-// "the main screen includes all the options the system allows"). Functional tiles
-// navigate into a real flow/tab; the rest acknowledge with an honest "demo only" toast.
-function OptionsGrid({ title = 'כל האפשרויות', items }) {
+// ───────── Main-screen quick-actions grid ─────────
+// Compact home-screen shortcuts. We keep only tiles that lead into a real flow/tab
+// (no dead "demo only" toasts) so the home screen stays focused on what actually works.
+function OptionsGrid({ title = 'פעולות מהירות', items }) {
   return (
     <>
       <div className="section-h"><span>{title}</span></div>

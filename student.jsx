@@ -17,6 +17,17 @@ function StudentDashboard({ state, dispatch }) {
         }
       />
       <div className="screen-scroll">
+        {/* New-task alert — prominent, the whole banner opens the task */}
+        <ScoutBanner
+          prominent
+          count={1}
+          icon="clipboard-list"
+          title="משימה חדשה מ-Scout"
+          body="נועה הקצתה לך: אינטגרציית API לתשלום · דדליין 1.6"
+          onAction={() => dispatch({ type: 'GO_S', target: 'taskDetail' })}
+          actionLabel="פתח"
+        />
+
         {/* "מאז הכניסה האחרונה שלך" — Scout digest */}
         <div style={{ padding: '0 14px 14px' }}>
           <ScoutCard
@@ -91,15 +102,43 @@ function StudentDashboard({ state, dispatch }) {
           </div>
         </div>
 
-        {/* All options the system offers (assignment: main screen surfaces everything) */}
+        {/* Other projects Yoav belongs to — display only (non-interactive) */}
+        <div className="section-h" style={{ marginTop: 16 }}>
+          <span>פרויקטים אחרים</span>
+          <span className="tiny muted">‎2 פעילים</span>
+        </div>
+        <div className="stack">
+          {[
+            { title: 'מערכת ניהול ספרייה', deadline: '12.6', progress: 38 },
+            { title: 'בוט תמיכה לקורס', deadline: '20.6', progress: 15 },
+          ].map((p, i) => (
+            <div key={i} className="card flat" style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'default' }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--chip)', color: 'var(--text-soft)',
+                display: 'grid', placeItems: 'center', flexShrink: 0,
+              }}>
+                <Icon name="folder-kanban" size={18} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="task-title">{p.title}</div>
+                <div className="bar" style={{ marginTop: 6 }}>
+                  <div className="bar-fill" style={{ width: p.progress + '%' }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.progress}%</div>
+                <div className="tiny muted">הגשה {p.deadline}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick actions — only tiles that lead to a real flow are kept */}
         <OptionsGrid items={[
           { icon: 'inbox', label: 'המשימות שלי', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'tasks' }) },
           { icon: 'sparkles', label: 'משימה חדשה', tint: { bg: 'var(--scout-soft)', fg: 'var(--scout-ink)' }, onPress: () => dispatch({ type: 'GO_S', target: 'taskDetail' }) },
           { icon: 'calendar', label: 'תכנון ביומן', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'diary' }) },
-          { icon: 'gauge', label: 'העומס שלי', onPress: () => dispatch({ type: 'TOAST', msg: 'מד עומס שבועי — להדגמה בלבד' }) },
-          { icon: 'timer', label: 'הערכת מאמץ', onPress: () => dispatch({ type: 'TOAST', msg: 'הערכת מאמץ של Scout — נפתחת בתוך משימה' }) },
-          { icon: 'bell', label: 'תזכורות', onPress: () => dispatch({ type: 'TOAST', msg: 'תזכורות — להדגמה בלבד' }) },
-          { icon: 'message-circle', label: 'צ׳אט קבוצתי', onPress: () => dispatch({ type: 'TOAST', msg: 'צ׳אט קבוצתי — להדגמה בלבד' }) },
           { icon: 'settings', label: 'הגדרות', onPress: () => dispatch({ type: 'NAV_TAB', tab: 'profile' }) },
         ]} />
 
@@ -254,9 +293,62 @@ function StudentTaskDetail({ state, dispatch }) {
           <div className="tiny muted" style={{ textAlign: 'center' }}>
             Scout יציע חלונות זמן מתאימים — תוכל לשנות.
           </div>
+
+          {/* Reject branch — decline the task back to the leader */}
+          <button
+            className="btn subtle block"
+            style={{ color: 'var(--red)', marginTop: 4 }}
+            onClick={() => dispatch({ type: 'OPEN_SHEET_S', sheet: 'rejectTask' })}
+          >
+            <Icon name="x" size={16} />
+            דחה משימה
+          </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// ───────── Reject task sheet ─────────
+function RejectTaskSheet({ state, dispatch }) {
+  const [reason, setReason] = React.useState('');
+  return (
+    <Sheet
+      open={state.sheetS === 'rejectTask'}
+      onClose={() => dispatch({ type: 'CLOSE_SHEET_S' })}
+      title="דחיית המשימה"
+      subtitle="נועה תקבל הודעה עם הסיבה שתבחר"
+      footer={
+        <div className="col">
+          <button className="btn danger block" onClick={() => dispatch({ type: 'REJECT_TASK', reason })}>
+            <Icon name="x-circle" size={16} />
+            דחה ושלח הודעה לנועה
+          </button>
+          <button className="btn ghost block" onClick={() => dispatch({ type: 'CLOSE_SHEET_S' })}>
+            ביטול
+          </button>
+        </div>
+      }
+    >
+      <div className="col" style={{ gap: 14 }}>
+        <div className="scout-banner">
+          <Icon name="info" size={14} color="var(--scout)" />
+          <div className="small" style={{ color: 'var(--text-soft)' }}>
+            הדחייה נשלחת לראש הקבוצה בלבד. Scout יציע לנועה לחלק מחדש את המשימה או לעדכן את הדדליין.
+          </div>
+        </div>
+        <div>
+          <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>סיבת הדחייה (אופציונלי)</div>
+          <textarea
+            className="ta"
+            rows={3}
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="לדוגמה: העומס שלי השבוע מלא — אפשר לדחות את הדדליין או להעביר לחבר אחר?"
+          />
+        </div>
+      </div>
+    </Sheet>
   );
 }
 
@@ -328,6 +420,15 @@ function AskScoutSheet({ state, dispatch }) {
     { q: 'יש דוגמאות ברפו?', a: 'יש אינטגרציה ל-Auth0 שעשית בנובמבר — אותו דפוס בערך. ראיתי שב-services/auth.ts יש את ה-pattern שאפשר לשכפל.' },
   ];
   const [open, setOpen] = React.useState({});
+  const [q, setQ] = React.useState('');
+  const [asked, setAsked] = React.useState([]);
+  const ANSWER = 'בדקתי את ההקשר של המשימה. בקצרה: כדאי להתחיל מחיבור ה-sandbox של Stripe ולוודא ש-webhook אחד עובד מקצה לקצה, לפני שמרחיבים לשאר התרחישים. רוצה שאפרט שלב-שלב?';
+  const send = () => {
+    const text = q.trim();
+    if (!text) return;
+    setAsked(a => [...a, { q: text, a: ANSWER }]);
+    setQ('');
+  };
   return (
     <Sheet
       open={state.sheetS === 'askScout'}
@@ -352,17 +453,49 @@ function AskScoutSheet({ state, dispatch }) {
 
         <div className="card flat" style={{ background: 'var(--scout-tint)', border: '1px solid color-mix(in oklch, var(--scout) 20%, transparent)' }}>
           <div className="small" style={{ color: 'var(--scout-ink)', fontWeight: 600, marginBottom: 6 }}>שאל משהו אחר</div>
-          <input
-            type="text"
-            placeholder="הקלד שאלה…"
-            style={{
-              width: '100%',
-              border: '1px solid color-mix(in oklch, var(--scout) 20%, transparent)',
-              background: 'var(--card)',
-              borderRadius: 10, padding: '10px 12px',
-              fontFamily: 'inherit', fontSize: 13,
-            }}
-          />
+
+          {asked.length > 0 && (
+            <div className="col" style={{ gap: 12, marginBottom: 10 }}>
+              {asked.map((it, i) => (
+                <div key={i} className="col" style={{ gap: 6 }}>
+                  <div className="small" style={{ fontWeight: 600 }}>{it.q}</div>
+                  <div className="row" style={{ alignItems: 'flex-start', gap: 6 }}>
+                    <span className="scout-badge" style={{ flexShrink: 0 }}>
+                      <Icon name="sparkles" size={10} />
+                      Scout
+                    </span>
+                    <div className="small" style={{ color: 'var(--text-soft)', lineHeight: 1.6 }}>{it.a}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="row" style={{ gap: 6 }}>
+            <input
+              type="text"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') send(); }}
+              placeholder="הקלד שאלה…"
+              style={{
+                flex: 1, minWidth: 0,
+                border: '1px solid color-mix(in oklch, var(--scout) 20%, transparent)',
+                background: 'var(--card)',
+                borderRadius: 10, padding: '10px 12px',
+                fontFamily: 'inherit', fontSize: 13, outline: 'none',
+              }}
+            />
+            <button
+              className="btn scout sm"
+              onClick={send}
+              disabled={!q.trim()}
+              aria-label="שלח"
+              style={{ flexShrink: 0, paddingInline: 12, opacity: q.trim() ? 1 : 0.5 }}
+            >
+              <Icon name="send" size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </Sheet>
@@ -375,7 +508,7 @@ const DAYS = ['א','ב','ג','ד','ה','ו','ש'];
 
 function StudentCalendar({ state, dispatch }) {
   const [blocks, setBlocks] = React.useState(state.calendarBlocks);
-  const [selected, setSelected] = React.useState(null);
+  const [dragId, setDragId] = React.useState(null);
   const confirmed = blocks.every(b => b.confirmed);
 
   // existing personal blocks (fixed)
@@ -393,31 +526,24 @@ function StudentCalendar({ state, dispatch }) {
     && !existing.some(e => e.day === day && e.hour < hour + len && e.hour + e.len > hour)
     && !blocks.some(b => b.id !== selfId && b.day === day && b.hour < hour + len && b.hour + b.len > hour);
 
-  // Tap a block to select it; tap it again to confirm.
-  const onBlockClick = (id) => {
-    if (selected === id) {
-      setBlocks(bs => bs.map(b => b.id === id ? { ...b, confirmed: true } : b));
-      setSelected(null);
-    } else {
-      setSelected(id);
-    }
-  };
+  // Tap a block to confirm it (or un-confirm).
+  const toggleConfirm = (id) =>
+    setBlocks(bs => bs.map(b => b.id === id ? { ...b, confirmed: !b.confirmed } : b));
 
-  // With a block selected, tap a free cell to move it there.
-  const onCellClick = (day, hour) => {
-    if (selected == null) return;
-    const blk = blocks.find(b => b.id === selected);
+  // Drag a block onto a free cell to move it there (grab-to-move).
+  const moveBlock = (id, day, hour) => {
+    const blk = blocks.find(b => b.id === id);
     if (!blk) return;
     if (!slotFree(day, hour, blk.len, blk.id)) {
       dispatch({ type: 'TOAST', msg: 'אין מספיק מקום פנוי כאן' });
       return;
     }
-    setBlocks(bs => bs.map(b => b.id === selected ? { ...b, day, hour, confirmed: false } : b));
+    setBlocks(bs => bs.map(b => b.id === id ? { ...b, day, hour, confirmed: false } : b));
   };
 
   // "סדר מחדש" — Scout re-resolves any conflicting block into the first free slot.
   const rearrange = () => {
-    setSelected(null);
+    setDragId(null);
     setBlocks(bs => bs.map(b => {
       const free = (d, h) => onGrid(h, b.len)
         && !existing.some(e => e.day === d && e.hour < h + b.len && e.hour + e.len > h)
@@ -454,15 +580,15 @@ function StudentCalendar({ state, dispatch }) {
             title="חלוקה מומלצת"
             suggestion={
               <div>
-                <b>3 בלוקים של ‎2 שעות</b> במהלך 4 הימים הקרובים. הוקדמתי מעט כדי להשאיר חלון לבדיקות לפני הדדליין.
+                <b>3 בלוקים של ‎2 שעות</b> במהלך 4 הימים הקרובים. הקדמתי אותם מעט כדי להשאיר חלון לבדיקות לפני הדדליין.
               </div>
             }
             why={
               <>
                 <ul style={{ margin: '0 18px 0 0', padding: 0, color: 'var(--text-soft)' }}>
-                  <li>בחרתי שעות בוקר — לפי הנתונים שלך אתה הכי פוקוסי לפני 12:00</li>
+                  <li>בחרתי שעות בוקר — לפי הנתונים שלך אתה הכי ממוקד בשעות הבוקר (לפני 12:00)</li>
                   <li>הימנעות מימי ד' אחה"צ (יש פגישת קבוצה)</li>
-                  <li>נשארת 4 שעות חיץ לתיקונים לפני 1.6</li>
+                  <li>נשארו 4 שעות חיץ לתיקונים לפני 1.6</li>
                 </ul>
               </>
             }
@@ -495,11 +621,13 @@ function StudentCalendar({ state, dispatch }) {
                   const ex = existing.find(e => e.day === di && e.hour === h);
                   const sc = blocks.find(b => b.day === di && b.hour === h);
                   const conflict = sc && existing.some(e => e.day === di && e.hour < h + 2 && e.hour + e.len > h);
-                  const moveTarget = !ex && !sc && selected != null;
+                  const dragBlk = dragId != null ? blocks.find(b => b.id === dragId) : null;
+                  const dropOk = dragBlk && !ex && !sc && slotFree(di, h, dragBlk.len, dragBlk.id);
                   return (
-                    <div key={di} className="cal-cell"
-                      style={{ minHeight: 38, cursor: moveTarget ? 'pointer' : 'default' }}
-                      onClick={moveTarget ? () => onCellClick(di, h) : undefined}>
+                    <div key={di} className={`cal-cell ${dropOk ? 'drop-ok' : ''}`}
+                      style={{ minHeight: 38 }}
+                      onDragOver={dropOk ? (e) => e.preventDefault() : undefined}
+                      onDrop={dropOk ? (e) => { e.preventDefault(); moveBlock(dragId, di, h); setDragId(null); } : undefined}>
                       {ex && (
                         <div className="cal-block existing" style={{ height: 38 * ex.len - 4 }}>
                           {ex.label}
@@ -507,11 +635,14 @@ function StudentCalendar({ state, dispatch }) {
                       )}
                       {sc && (
                         <div
-                          className={`cal-block scout ${sc.confirmed ? 'confirmed' : ''} ${conflict ? 'conflict' : ''} ${selected === sc.id ? 'selected' : ''}`}
+                          className={`cal-block scout ${sc.confirmed ? 'confirmed' : ''} ${conflict ? 'conflict' : ''} ${dragId === sc.id ? 'dragging' : ''}`}
                           style={{ height: 38 * sc.len - 4 }}
-                          onClick={(e) => { e.stopPropagation(); onBlockClick(sc.id); }}
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', sc.id); setDragId(sc.id); }}
+                          onDragEnd={() => setDragId(null)}
+                          onClick={() => toggleConfirm(sc.id)}
                         >
-                          {conflict ? '⚠ ' : sc.confirmed ? '✓ ' : selected === sc.id ? '● ' : ''}תשלום ‎{sc.len}ש
+                          {conflict ? '⚠ ' : sc.confirmed ? '✓ ' : ''}תשלום ‎{sc.len}ש
                         </div>
                       )}
                     </div>
@@ -527,9 +658,9 @@ function StudentCalendar({ state, dispatch }) {
               <span className="small muted">
                 {confirmed
                   ? 'כל הבלוקים אושרו ✓'
-                  : selected != null
-                    ? 'הבלוק נבחר — הקש על משבצת פנויה כדי להזיז, או על הבלוק שוב כדי לאשר.'
-                    : 'הקש על בלוק כדי לבחור, ואז על משבצת פנויה כדי להזיז. הקש שוב לאישור.'}
+                  : dragId != null
+                    ? 'שחרר על משבצת פנויה כדי להזיז את הבלוק.'
+                    : 'גרור בלוק כדי להזיז · הקש על בלוק כדי לאשר.'}
               </span>
             </div>
           </div>
@@ -676,5 +807,5 @@ function StudentConfirmation({ state, dispatch }) {
 
 Object.assign(window, {
   StudentDashboard, StudentTaskDetail, EffortSheet, AskScoutSheet,
-  StudentCalendar, RemindersSheet, StudentConfirmation,
+  StudentCalendar, RemindersSheet, StudentConfirmation, RejectTaskSheet,
 });

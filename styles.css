@@ -434,6 +434,41 @@ body {
   align-items: flex-start;
   gap: 10px;
 }
+.notif-banner-ic {
+  position: relative;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--scout);
+  color: white;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .notif-banner-ic { color: #0e1015; }
+.notif-count {
+  position: absolute;
+  top: -6px; left: -6px;
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid; place-items: center;
+  border: 2px solid var(--scout-soft);
+}
+/* Prominent variant — glowing, fully-tappable alert */
+.notif-banner.prominent {
+  border-color: color-mix(in oklch, var(--scout) 45%, transparent);
+  box-shadow: 0 4px 14px color-mix(in oklch, var(--scout) 18%, transparent);
+  animation: notifPulse 2.6s ease-in-out infinite;
+}
+.notif-banner.prominent:active { transform: scale(0.99); }
+.notif-banner.prominent .notif-banner-ic { width: 32px; height: 32px; border-radius: 9px; }
+@keyframes notifPulse {
+  0%, 100% { box-shadow: 0 4px 14px color-mix(in oklch, var(--scout) 18%, transparent); }
+  50% { box-shadow: 0 6px 22px color-mix(in oklch, var(--scout) 38%, transparent); }
+}
 
 /* Toast */
 .toast {
@@ -526,13 +561,6 @@ body {
   line-height: 1.15;
 }
 
-/* Selected (being-moved) calendar block */
-.cal-block.selected {
-  outline: 2px solid var(--scout-ink);
-  outline-offset: 1px;
-  box-shadow: 0 4px 12px color-mix(in oklch, var(--scout) 45%, transparent);
-}
-
 /* Task row */
 .task-row {
   background: var(--card);
@@ -604,10 +632,17 @@ body {
   overflow: hidden;
   cursor: pointer;
 }
-.cal-block.existing { background: color-mix(in oklch, var(--text) 50%, transparent); color: white; }
-.cal-block.scout { background: var(--scout); animation: pulse 2.5s infinite; }
+.cal-block.existing { background: color-mix(in oklch, var(--text) 50%, transparent); color: white; cursor: default; }
+.cal-block.scout { background: var(--scout); animation: pulse 2.5s infinite; cursor: grab; }
 .cal-block.scout.confirmed { animation: none; box-shadow: 0 0 0 2px color-mix(in oklch, var(--scout) 30%, transparent); }
+.cal-block.scout.dragging { opacity: .45; cursor: grabbing; animation: none; }
 .cal-block.conflict { background: var(--red); }
+
+/* Free cell highlighted as a drop target while dragging a block */
+.cal-cell.drop-ok {
+  background: color-mix(in oklch, var(--scout) 12%, var(--card));
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--scout) 45%, transparent);
+}
 
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--scout) 40%, transparent); }
@@ -723,27 +758,6 @@ body {
 [data-theme="dark"] .opt.recommended::after { color: #0e1015; }
 .opt-wrap { position: relative; }
 
-/* Anatomy callouts (L4) */
-.callout {
-  position: absolute;
-  left: -42px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--scout-ink);
-  font-size: 11px;
-  font-weight: 700;
-}
-.callout-num {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--scout);
-  color: white;
-  display: grid; place-items: center;
-  font-size: 11px;
-  box-shadow: 0 2px 8px color-mix(in oklch, var(--scout) 35%, transparent);
-}
-
 /* Misc */
 .divider { height: 1px; background: var(--hair); margin: 10px 0; }
 .muted { color: var(--text-mute); }
@@ -826,6 +840,25 @@ body {
   background: var(--primary);
   border-color: var(--primary);
   color: white;
+}
+
+/* Radio (single-choice option lists) */
+.radio {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--hair-strong);
+  display: grid; place-items: center;
+  cursor: pointer;
+  background: var(--card);
+  flex-shrink: 0;
+  transition: border-color .15s;
+}
+.radio.on { border-color: var(--scout); }
+.radio.on::after {
+  content: '';
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--scout);
 }
 
 /* Big number */
